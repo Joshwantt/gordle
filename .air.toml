@@ -1,0 +1,13 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "pnpm -C web build && go build -o ./tmp/gordle ./cmd/gordle"
+  entrypoint = ["./tmp/gordle"]
+  include_ext = ["go", "astro", "ts", "js", "mjs", "css"]
+  exclude_dir = ["tmp", "bin", "web/node_modules", "web/dist", "web/.astro"]
+  delay = 500
+  stop_on_error = true
+
+[misc]
+  clean_on_exit = true
