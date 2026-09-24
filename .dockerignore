@@ -1,0 +1,9 @@
+.git
+.github
+.vscode
+.idea
+bin
+tmp
+web/node_modules
+web/dist
+web/.astro
