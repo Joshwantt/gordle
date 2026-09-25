@@ -1,8 +1,7 @@
-# Nordle Docs
+# Gordle Docs
 
-Documentation for Nordle.
+Documentation for Gordle.
 
 ## Index
 
  - [API Docs](./api/index.md)
-
