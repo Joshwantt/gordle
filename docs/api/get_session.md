@@ -1,33 +1,33 @@
-# `get_game`
+# `get_session`
 
 ```
-GET /api/games/{game_id}
+GET /api/session/{session_id}
 ```
 
-The `get_game` endpoint is used to retrieve information about an existing game, including guesses that have been made.
+The `get_session` endpoint is used to retrieve information about an existing session, including guesses that have been made.
 
 ## Request
 
 ```http
-GET /api/games/c0a95416-a39e-4adb-a7fc-b05f90e61ec4 HTTP/1.1
+GET /api/session/c0a95416-a39e-4adb-a7fc-b05f90e61ec4 HTTP/1.1
 ```
 
 **Path Parameters:**
 | Field | Type | Description |
 |-------|------|-------------|
-| `game_id` | String | The UUID of the game to retrieve. |
+| `session_id` | String | The UUID of the session to retrieve. |
 
 ## Response
 
 On success, the server responds with `200 OK`.
 
-### Success - Fresh Game
+### Success - Fresh Session
 
-Example response from a fresh game, with no guesses.
+Example response from a fresh session, with no guesses.
 
 ```json
 {
-    "game_id": "c0a95416-a39e-4adb-a7fc-b05f90e61ec4",
+    "session_id": "c0a95416-a39e-4adb-a7fc-b05f90e61ec4",
     "guesses": [],
     "max_guesses": 6,
     "word_length": 5
@@ -37,18 +37,18 @@ Example response from a fresh game, with no guesses.
 **Response Body:**
 | Field | Type | Description |
 |-------|------|-------------|
-| `game_id` | String | The UUID of the game. |
-| `guesses` | `Guess[]` | The guesses made so far, in the order they were made. On a fresh game, this will be empty. |
+| `session_id` | String | The UUID of the session. |
+| `guesses` | `Guess[]` | The guesses made so far, in the order they were made. On a fresh session, this will be empty. |
 | `max_guesses` | Integer | How many guesses the player may make before losing. |
 | `word_length` | Integer | How many letters are in the hidden word. Every guess must be this length. |
 
-### Success - Game In Progress
+### Success - Session In Progress
 
-Example response from a game in progress with two guesses made. The hidden word is "crumb", although this information is only known to the server.
+Example response from a session in progress with two guesses made. The hidden word is "crumb", although this information is only known to the server.
 
 ```json
 {
-    "game_id": "c0a95416-a39e-4adb-a7fc-b05f90e61ec4",
+    "session_id": "c0a95416-a39e-4adb-a7fc-b05f90e61ec4",
     "guesses": [
         {
             "word": "zebra",
@@ -67,19 +67,19 @@ Example response from a game in progress with two guesses made. The hidden word 
 **Response Body:**
 | Field | Type | Description |
 |-------|------|-------------|
-| `game_id` | String | The UUID of the game. |
+| `session_id` | String | The UUID of the session. |
 | `guesses` | `Guess[]` | See below. |
 | `max_guesses` | Integer | How many guesses the player may make before losing. |
 | `word_length` | Integer | How many letters are in the hidden word. Every guess must be this length. |
 
 
-### Success - Completed Game
+### Success - Completed Session
 
-Example response from a completed game where the player won by guessing the hidden word "crumb". When a game is complete, `hidden_word` is included in the response. A player wins by guessing the hidden word, and loses by making `max_guesses` guesses without doing so. A winning game's final guess will always show all `"correct"` results.
+Example response from a completed session where the player won by guessing the hidden word "crumb". When a session is complete, `hidden_word` is included in the response. A player wins by guessing the hidden word, and loses by making `max_guesses` guesses without doing so. A winning session's final guess will always show all `"correct"` results.
 
 ```json
 {
-    "game_id": "c0a95416-a39e-4adb-a7fc-b05f90e61ec4",
+    "session_id": "c0a95416-a39e-4adb-a7fc-b05f90e61ec4",
     "guesses": [
         {
             "word": "zebra",
@@ -103,11 +103,11 @@ Example response from a completed game where the player won by guessing the hidd
 **Response Body:**
 | Field | Type | Description |
 |-------|------|-------------|
-| `game_id` | String | The UUID of the game. |
+| `session_id` | String | The UUID of the session. |
 | `guesses` | `Guess[]` | See below. |
 | `max_guesses` | Integer | How many guesses the player may make before losing. |
 | `word_length` | Integer | How many letters are in the hidden word. Every guess must be this length. |
-| `hidden_word` | String | The word the player was trying to guess. Only present when the game is complete. |
+| `hidden_word` | String | The word the player was trying to guess. Only present when the session is complete. |
 
 
 ### `Guess`
@@ -144,11 +144,11 @@ The status code will always be `4xx` on failure, as listed below.
 
 ```json
 {
-    "reason": "game_not_found"
+    "reason": "session_not_found"
 }
 ```
 
 | Status | `reason` | Meaning |
 |--------|----------|---------|
-| `400 Bad Request` | `invalid_request` | The request was malformed, such as a `game_id` that is not a valid UUID. |
-| `404 Not Found` | `game_not_found` | No game exists with the provided `game_id`. |
+| `400 Bad Request` | `invalid_request` | The request was malformed, such as a `session_id` that is not a valid UUID. |
+| `404 Not Found` | `session_not_found` | No session exists with the provided `session_id`. |
