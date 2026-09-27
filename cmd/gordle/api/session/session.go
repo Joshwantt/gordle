@@ -13,14 +13,19 @@ type Response struct {
 	Guesses    []gamesession.Guess `json:"guesses"`
 	MaxGuesses int                 `json:"max_guesses"`
 	WordLength int                 `json:"word_length"`
+	HiddenWord string              `json:"hidden_word,omitempty"`
 }
 
 // build the Response for a session, keeping the hidden word out of it
 func NewResponse(sessionID uuid.UUID, gameSession gamesession.Session) Response {
-	return Response{
+	response := Response{
 		SessionID:  sessionID.String(),
 		Guesses:    gameSession.Guesses,
 		MaxGuesses: gameSession.MaxGuesses,
 		WordLength: gameSession.WordLength,
 	}
+	if gameSession.IsComplete() {
+		response.HiddenWord = gameSession.HiddenWord
+	}
+	return response
 }
