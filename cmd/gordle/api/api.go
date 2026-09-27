@@ -2,6 +2,8 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/Joshwantt/gordle/cmd/gordle/api/health"
@@ -10,8 +12,16 @@ import (
 	"github.com/Joshwantt/gordle/cmd/gordle/store"
 )
 
+// the largest request body any route accepts.
+const maxRequestBodyBytes = 2048
+
 // attach every API route to routerGroup, with session routes backed by sessionStore
 func Register(routerGroup *gin.RouterGroup, sessionStore *store.Store, answersByLength map[int][]string, guessesByLength map[int]map[string]bool) {
+	routerGroup.Use(func(context *gin.Context) {
+		context.Request.Body = http.MaxBytesReader(context.Writer, context.Request.Body, maxRequestBodyBytes)
+		context.Next()
+	})
+
 	routerGroup.GET("/health", health.Get)
 
 	sessionGroup := routerGroup.Group("/session")
