@@ -36,14 +36,20 @@ func MakeGuess(sessionStore *store.Store, guessesByLength map[int][]string) gin.
 
 		guessWord := strings.ToLower(request.Guess)
 
+		// UpdateSession will hold the mutex
+		// Capture outcomes so they can be replied to after UpdateSession has exited (and released the mutex)
+		var failureStatus int
+		var failureReason string
+		var updatedSession gamesession.Session
+
 		exists := sessionStore.UpdateSession(sessionID, func(storedSession *gamesession.Session) {
 			if storedSession.IsComplete() {
-				context.JSON(http.StatusConflict, gin.H{"reason": "session_complete"})
+				failureStatus, failureReason = http.StatusConflict, "session_complete"
 				return
 			}
 
 			if !slices.Contains(guessesByLength[storedSession.WordLength], guessWord) {
-				context.JSON(http.StatusUnprocessableEntity, gin.H{"reason": "invalid_word"})
+				failureStatus, failureReason = http.StatusUnprocessableEntity, "invalid_word"
 				return
 			}
 
@@ -51,12 +57,20 @@ func MakeGuess(sessionStore *store.Store, guessesByLength map[int][]string) gin.
 				Word:   guessWord,
 				Result: gamesession.Score(guessWord, storedSession.HiddenWord),
 			})
-			context.JSON(http.StatusOK, session.NewResponse(sessionID, *storedSession))
+			updatedSession = *storedSession
 		})
 
 		// UpdateSession returns a bool which is only false if the session is not found
 		if !exists {
 			context.JSON(http.StatusNotFound, gin.H{"reason": "session_not_found"})
+			return
 		}
+
+		if failureStatus != 0 {
+			context.JSON(failureStatus, gin.H{"reason": failureReason})
+			return
+		}
+
+		context.JSON(http.StatusOK, session.NewResponse(sessionID, updatedSession))
 	}
 }
