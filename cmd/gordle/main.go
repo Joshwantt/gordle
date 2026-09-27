@@ -17,6 +17,9 @@ import (
 //go:embed valid_answers_5
 var validAnswers5 string
 
+//go:embed valid_guess_5
+var validGuess5 string
+
 func main() {
 	sessionStore := store.New()
 	go sessionStore.DeleteInactiveTicker(time.Minute, time.Hour*24)
@@ -29,9 +32,16 @@ func main() {
 		5: strings.Fields(validAnswers5),
 	}
 
+	// every answer is also a valid guess so join them.
+	// store these a set so checking a guess is a fast map lookup
+	guessesByLength := map[int]map[string]bool{5: {}}
+	for _, guess := range append(strings.Fields(validGuess5), answersByLength[5]...) {
+		guessesByLength[5][guess] = true
+	}
+
 	router := gin.Default()
 
-	api.Register(router.Group("/api"), sessionStore, answersByLength)
+	api.Register(router.Group("/api"), sessionStore, answersByLength, guessesByLength)
 
 	router.NoRoute(gin.WrapH(http.FileServer(http.Dir(*staticDirectory))))
 
