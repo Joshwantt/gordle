@@ -45,5 +45,15 @@ func main() {
 
 	router.NoRoute(gin.WrapH(http.FileServer(http.Dir(*staticDirectory))))
 
-	log.Fatal(router.Run(*address))
+	// timeouts so slow or idle clients can't hold connections open forever
+	server := &http.Server{
+		Addr:              *address,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+	}
+
+	log.Fatal(server.ListenAndServe())
 }
