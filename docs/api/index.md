@@ -2,19 +2,19 @@
 
 Gordle uses a REST style API to manage game state between the client and the server.
 
-## Games
+## Sessions
 
-Each game of Gordle follows the normal Wordle rules: the player has six guesses to find a hidden five letter word. Games:
+Each session is one game of Gordle, following the normal Wordle rules: the player has six guesses to find a hidden five letter word. Sessions:
  - Have a unique ID which can be used to manipulate them
- - Store all the information about a game including the hidden word and what guesses have been made.
+ - Store all the information about the game including the hidden word and what guesses have been made.
 
-Until a game is complete (the player has won or lost the game) the hidden word is kept exclusively on the server side to prevent cheating, a notable improvement over traditional Wordle
+Until a session is complete (the player has won or lost the game) the hidden word is kept exclusively on the server side to prevent cheating, a notable improvement over traditional Wordle
 
 ## Conventions
 
 All endpoints expect requests to:
  - Use the HTTP method matching the operation: `GET` to retrieve, `POST` to create.
- - Identify the game being operated on in the path, e.g. `/api/games/{game_id}`.
+ - Identify the session being operated on in the path, e.g. `/api/session/{session_id}`.
  - Where a payload is sent, be of the `application/json` mimetype.
  - Where a payload is sent, have a payload made up of valid JSON.
 
@@ -27,6 +27,6 @@ All responses from endpoints will:
 
 ## API Endpoints
 
- - [`create_game`](./create_game.md) (`POST /api/games`): Create a new game.
- - [`get_game`](./get_game.md) (`GET /api/games/{game_id}`): Obtain information about an existing game.
- - [`make_guess`](./make_guess.md) (`POST /api/games/{game_id}/guess`): Make a guess in an existing game.
+ - [`create_session`](./create_session.md) (`POST /api/session`): Create a new session.
+ - [`get_session`](./get_session.md) (`GET /api/session/{session_id}`): Obtain information about an existing session.
+ - [`make_guess`](./make_guess.md) (`POST /api/session/{session_id}/guess`): Make a guess in an existing session.
