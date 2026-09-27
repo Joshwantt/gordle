@@ -12,9 +12,8 @@ import (
 	"github.com/Joshwantt/gordle/cmd/gordle/store"
 )
 
-// the largest request body any route accepts. a guess is ~20 bytes, so this is plenty,
-// and stops a huge body being read into memory
-const maxRequestBodyBytes = 1024
+// the largest request body any route accepts.
+const maxRequestBodyBytes = 2048
 
 // attach every API route to routerGroup, with session routes backed by sessionStore
 func Register(routerGroup *gin.RouterGroup, sessionStore *store.Store, answersByLength map[int][]string, guessesByLength map[int]map[string]bool) {
