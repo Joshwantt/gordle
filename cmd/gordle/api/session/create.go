@@ -1,6 +1,7 @@
 package session
 
 import (
+	"math/rand/v2"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,10 +13,14 @@ import (
 // hard coded 6 guesses for session construction.
 const maxGuesses = 6
 
-// start a new session and respond with its initial state
-func CreateSession(sessionStore *store.Store) gin.HandlerFunc {
+// hard coded 5 letter words for moment
+const wordLength = 5
+
+// start a new session with a random wordLength hidden word from answersByLength and respond with its initial state
+func CreateSession(sessionStore *store.Store, answersByLength map[int][]string) gin.HandlerFunc {
 	return func(context *gin.Context) {
-		hiddenWord := "crate"
+		answers := answersByLength[wordLength]
+		hiddenWord := answers[rand.N(len(answers))]
 		newSession := gamesession.New(hiddenWord, maxGuesses)
 
 		sessionID := sessionStore.AddSession(newSession)

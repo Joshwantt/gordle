@@ -1,9 +1,11 @@
 package main
 
 import (
+	_ "embed"
 	"flag"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -11,6 +13,9 @@ import (
 	"github.com/Joshwantt/gordle/cmd/gordle/api"
 	"github.com/Joshwantt/gordle/cmd/gordle/store"
 )
+
+//go:embed valid_answers_5
+var validAnswers5 string
 
 func main() {
 	sessionStore := store.New()
@@ -20,9 +25,13 @@ func main() {
 	staticDirectory := flag.String("static", "web/dist", "directory of the built site to serve")
 	flag.Parse()
 
+	answersByLength := map[int][]string{
+		5: strings.Fields(validAnswers5),
+	}
+
 	router := gin.Default()
 
-	api.Register(router.Group("/api"), sessionStore)
+	api.Register(router.Group("/api"), sessionStore, answersByLength)
 
 	router.NoRoute(gin.WrapH(http.FileServer(http.Dir(*staticDirectory))))
 
