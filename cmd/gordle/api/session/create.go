@@ -9,8 +9,10 @@ import (
 	"github.com/Joshwantt/gordle/cmd/gordle/store"
 )
 
+// hard coded 6 guesses for session construction.
 const maxGuesses = 6
 
+// start a new session and respond with its initial state
 func CreateSession(sessionStore *store.Store) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		hiddenWord := "crate"

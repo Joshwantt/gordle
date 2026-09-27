@@ -10,6 +10,7 @@ import (
 	"github.com/Joshwantt/gordle/cmd/gordle/store"
 )
 
+// attach every API route to routerGroup, with session routes backed by sessionStore
 func Register(routerGroup *gin.RouterGroup, sessionStore *store.Store) {
 	routerGroup.GET("/health", health.Get)
 
