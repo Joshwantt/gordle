@@ -5,6 +5,7 @@ package apitest
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -17,13 +18,20 @@ func NewRouter() http.Handler {
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	api.Register(router.Group("/api"), sessionStore, map[int][]string{5: {"crate"}})
+	api.Register(router.Group("/api"), sessionStore, map[int][]string{5: {"crate"}}, map[int][]string{5: {"crate", "eerie"}})
 	return router
 }
 
 func Serve(router http.Handler, method, path string) *httptest.ResponseRecorder {
 	recorder := httptest.NewRecorder()
 	router.ServeHTTP(recorder, httptest.NewRequest(method, path, nil))
+	return recorder
+}
+
+// serve but with a body
+func ServeBody(router http.Handler, method, path, body string) *httptest.ResponseRecorder {
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, httptest.NewRequest(method, path, strings.NewReader(body)))
 	return recorder
 }
 
