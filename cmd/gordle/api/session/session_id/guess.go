@@ -2,7 +2,6 @@ package session_id
 
 import (
 	"net/http"
-	"slices"
 	"strings"
 	"uuid"
 
@@ -17,7 +16,7 @@ type guessRequest struct {
 }
 
 // make a guess in an existing session accepting only words from guessesByLength
-func MakeGuess(sessionStore *store.Store, guessesByLength map[int][]string) gin.HandlerFunc {
+func MakeGuess(sessionStore *store.Store, guessesByLength map[int]map[string]bool) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		sessionID, parseError := uuid.Parse(context.Param("session_id"))
 
@@ -48,7 +47,7 @@ func MakeGuess(sessionStore *store.Store, guessesByLength map[int][]string) gin.
 				return
 			}
 
-			if !slices.Contains(guessesByLength[storedSession.WordLength], guessWord) {
+			if !guessesByLength[storedSession.WordLength][guessWord] {
 				failureStatus, failureReason = http.StatusUnprocessableEntity, "invalid_word"
 				return
 			}

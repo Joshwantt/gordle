@@ -32,9 +32,11 @@ func main() {
 		5: strings.Fields(validAnswers5),
 	}
 
-	// every answer is also a valid guess so join them
-	guessesByLength := map[int][]string{
-		5: append(strings.Fields(validGuess5), answersByLength[5]...),
+	// every answer is also a valid guess so join them.
+	// store these a set so checking a guess is a fast map lookup
+	guessesByLength := map[int]map[string]bool{5: {}}
+	for _, guess := range append(strings.Fields(validGuess5), answersByLength[5]...) {
+		guessesByLength[5][guess] = true
 	}
 
 	router := gin.Default()

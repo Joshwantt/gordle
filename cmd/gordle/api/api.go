@@ -11,7 +11,7 @@ import (
 )
 
 // attach every API route to routerGroup, with session routes backed by sessionStore
-func Register(routerGroup *gin.RouterGroup, sessionStore *store.Store, answersByLength map[int][]string, guessesByLength map[int][]string) {
+func Register(routerGroup *gin.RouterGroup, sessionStore *store.Store, answersByLength map[int][]string, guessesByLength map[int]map[string]bool) {
 	routerGroup.GET("/health", health.Get)
 
 	sessionGroup := routerGroup.Group("/session")

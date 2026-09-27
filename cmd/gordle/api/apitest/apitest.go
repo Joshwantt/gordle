@@ -18,7 +18,7 @@ func NewRouter() http.Handler {
 
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
-	api.Register(router.Group("/api"), sessionStore, map[int][]string{5: {"crate"}}, map[int][]string{5: {"crate", "eerie"}})
+	api.Register(router.Group("/api"), sessionStore, map[int][]string{5: {"crate"}}, map[int]map[string]bool{5: {"crate": true, "eerie": true}})
 	return router
 }
 
