@@ -8,14 +8,21 @@ The `create_session` endpoint is used to create a session, and should be used to
 
 ## Request
 
-This endpoint does not take any parameters, the payload will be ignored. It is acceptable to have an empty payload.
-
 ```http
 POST /api/session HTTP/1.1
 Content-Type: application/json
 
-{}
+{
+    "word_length": 5,
+    "max_guesses": 6
+}
 ```
+
+**Request Body:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `word_length` | Integer | How many letters are in the hidden word. Must be between `3` and `16` inclusive. |
+| `max_guesses` | Integer | How many guesses the player may make before losing. Must be between `1` and `20` inclusive. |
 
 ## Response
 
@@ -25,10 +32,14 @@ On success, the server responds with `201 Created` and the full initial game sta
 
 ### Failure
 
-No reason is supplied for failure. This operation is intended to always succeed.
-
-The status code will always be `500 Internal Server Error` on failure.
+The status code will always be `4xx` on failure, as listed below.
 
 ```json
-{}
+{
+    "reason": "invalid_request"
+}
 ```
+
+| Status | `reason` | Meaning |
+|--------|----------|---------|
+| `400 Bad Request` | `invalid_request` | The request was malformed, missing required arguments, or `word_length` or `max_guesses` is out of range. |

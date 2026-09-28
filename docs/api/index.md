@@ -4,7 +4,7 @@ Gordle uses a REST style API to manage game state between the client and the ser
 
 ## Sessions
 
-Each session is one game of Gordle, following the normal Wordle rules: the player has six guesses to find a hidden five letter word. Sessions:
+Each session is one game of Gordle, following the normal Wordle rules: the player has a set number of guesses to find a hidden word of a set length, both chosen when the session is created. Sessions:
  - Have a unique ID which can be used to manipulate them
  - Store all the information about the game including the hidden word and what guesses have been made.
 
