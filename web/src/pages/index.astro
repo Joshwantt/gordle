@@ -1,18 +1,325 @@
 ---
-
+const keyboardRows = [
+  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+  ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+  ["enter", "z", "x", "c", "v", "b", "n", "m", "backspace"],
+];
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Gordle</title>
-	</head>
-	<body>
-		<h1>Welcome to Gordle</h1>
-    <h1>With a deploy action!</h1>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Gordle</title>
+  </head>
+  <body>
+    <header>
+      <h1>Gordle</h1>
+      <button id="new-game" type="button">
+        New game
+      </button>
+    </header>
+
+    <main>
+      <div id="board"></div>
+    </main>
+
+    <div id="toast" role="status"></div>
+
+    <div id="keyboard">
+      {keyboardRows.map((row) => (
+        <div class="keyboard-row">
+          {row.map((key) => (
+            <button
+              type="button"
+              class:list={["key", { wide: key.length > 1 }]}
+              data-key={key}
+              aria-label={key}
+            >
+              {key === "backspace" ? "⌫" : key}
+            </button>
+          ))}
+        </div>
+      ))}
+    </div>
+
+    <footer>
+      <a
+        href="https://github.com/Joshwantt/gordle"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Source code on GitHub"
+      >
+        <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+          ></path>
+        </svg>
+      </a>
+    </footer>
+
+    <dialog id="new-game-dialog" aria-labelledby="new-game-title">
+      <form id="new-game-form" method="dialog">
+        <h2 id="new-game-title">New game</h2>
+
+        <label for="word-length">
+          Word length: <output id="word-length-value">5</output>
+          <input id="word-length" type="range" min="3" max="16" value="5" />
+        </label>
+
+        <label for="max-guesses">
+          Guesses: <output id="max-guesses-value">6</output>
+          <input id="max-guesses" type="range" min="1" max="20" value="6" />
+        </label>
+
+        <div class="dialog-buttons">
+          <button id="new-game-cancel" type="button">
+            Cancel
+          </button>
+          <button type="submit" autofocus>
+            Start
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <script>
+      import "../scripts/game.ts";
+    </script>
+  </body>
 </html>
+
+<style is:global>
+  /* light-dark() picks a colour based on the browser's light or dark mode */
+  :root {
+    color-scheme: light dark;
+    accent-color: #6aaa64;
+    --color-correct: #6aaa64;
+    --color-present: #c9b458;
+    --color-absent: light-dark(#787c7e, #3a3a3c);
+    --color-border: light-dark(#d3d6da, #3a3a3c);
+    --color-border-filled: light-dark(#878a8c, #565758);
+    --color-key: light-dark(#d3d6da, #818384);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    margin: 0;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  /* the board takes whatever space is left between the header and keyboard */
+  main {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    padding: 12px;
+    container-type: size;
+  }
+
+  /* tiles shrink until the whole board fits inside main (cqw and cqh are main's width and height) */
+  #board {
+    --tile-size: min(
+      62px,
+      100cqw / var(--columns) - 5px,
+      100cqh / var(--rows) - 5px
+    );
+    display: grid;
+    gap: 5px;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: repeat(var(--columns), var(--tile-size));
+    gap: 5px;
+  }
+
+  .tile {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--color-border);
+    font-size: calc(var(--tile-size) * 0.55);
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .tile[data-state="filled"] {
+    border-color: var(--color-border-filled);
+    animation: pop 100ms;
+  }
+
+  /* each tile flips in turn and only switches to its result colour when edge-on, halfway through */
+  .row.reveal .tile {
+    animation: flip 500ms calc(var(--index) * 250ms);
+    transition-property: background-color, border-color, color;
+    transition-delay: calc(var(--index) * 250ms + 250ms);
+  }
+
+  .row.shake {
+    animation: shake 300ms;
+  }
+
+  @keyframes pop {
+    50% {
+      transform: scale(1.1);
+    }
+  }
+
+  @keyframes flip {
+    50% {
+      transform: rotateX(90deg);
+    }
+  }
+
+  @keyframes shake {
+    25%,
+    75% {
+      transform: translateX(-4px);
+    }
+    50% {
+      transform: translateX(4px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+
+  #toast {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    translate: -50%;
+    padding: 12px 16px;
+    border-radius: 4px;
+    background: CanvasText;
+    color: Canvas;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  /* hidden rather than display: none, so screen readers still announce new messages */
+  #toast:empty {
+    opacity: 0;
+  }
+
+  #keyboard {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 0 8px 8px;
+  }
+
+  .keyboard-row {
+    display: flex;
+    gap: 6px;
+  }
+
+  /* the middle row has one less key, so indent it by half a key on each side */
+  .keyboard-row:nth-child(2) {
+    padding: 0 5%;
+  }
+
+  .key {
+    flex: 1;
+    height: min(58px, 8dvh);
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: var(--color-key);
+    font-size: 1.25rem;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .key.wide {
+    flex: 1.5;
+  }
+
+  .key[data-key="enter"] {
+    font-size: 0.75rem;
+  }
+
+  /* results colour both the board tiles and the keyboard keys, so these come after both */
+  [data-state="correct"] {
+    background: var(--color-correct);
+  }
+  [data-state="present"] {
+    background: var(--color-present);
+  }
+  [data-state="absent"] {
+    background: var(--color-absent);
+  }
+  [data-state="correct"],
+  [data-state="present"],
+  [data-state="absent"] {
+    border-color: transparent;
+    color: white;
+  }
+
+  footer {
+    display: flex;
+    justify-content: center;
+    padding-bottom: 8px;
+  }
+
+  footer a {
+    display: flex;
+    color: inherit;
+    opacity: 0.4;
+  }
+
+  footer a:hover,
+  footer a:focus-visible {
+    opacity: 1;
+  }
+
+  #new-game-dialog {
+    width: 320px;
+  }
+
+  #new-game-form {
+    display: grid;
+    gap: 16px;
+  }
+
+  #new-game-form h2 {
+    margin: 0;
+  }
+
+  #new-game-form input {
+    display: block;
+    width: 100%;
+  }
+
+  .dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+</style>
