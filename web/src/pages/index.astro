@@ -170,9 +170,9 @@ const keyboardRows = [
 
   /* each tile flips in turn and only switches to its result colour when edge-on, halfway through */
   .row.reveal .tile {
-    animation: flip 500ms calc(var(--index) * 250ms);
-    transition-property: background-color, border-color, color;
-    transition-delay: calc(var(--index) * 250ms + 250ms);
+    animation:
+      flip 500ms calc(var(--index) * 250ms),
+      hide-result 250ms calc(var(--index) * 250ms) step-end backwards;
   }
 
   .row.shake {
@@ -188,6 +188,15 @@ const keyboardRows = [
   @keyframes flip {
     50% {
       transform: rotateX(90deg);
+    }
+  }
+
+  /* holds the typed letter look until the animation ends, then the result colour shows */
+  @keyframes hide-result {
+    from {
+      background-color: transparent;
+      border-color: var(--color-border-filled);
+      color: CanvasText;
     }
   }
 
