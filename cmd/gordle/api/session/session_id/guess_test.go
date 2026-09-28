@@ -14,7 +14,7 @@ import (
 // create a session on router whose hidden word is always "crate"
 func newGuessPath(router http.Handler) string {
 	var created session.Response
-	json.Unmarshal(apitest.Serve(router, http.MethodPost, "/api/session").Body.Bytes(), &created)
+	json.Unmarshal(apitest.ServeBody(router, http.MethodPost, "/api/session", `{"word_length": 5, "max_guesses": 6}`).Body.Bytes(), &created)
 	return "/api/session/" + created.SessionID + "/guess"
 }
 
