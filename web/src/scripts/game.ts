@@ -10,129 +10,133 @@ interface Session {
   guesses: Guess[];
   max_guesses: number;
   word_length: number;
+  // only sent once the game is over
   hidden_word?: string;
 }
 
 const sessionStorageKey = "gordle-session-id";
 
-// used to keep only the strongest result per letter on the keyboard
-const resultRank: Record<LetterResult, number> = {
-  absent: 1,
-  present: 2,
-  correct: 3,
-};
-
-const flipStaggerMilliseconds = 250;
+// must match the flip animation in index.astro
+const flipDelayMilliseconds = 250;
 const flipDurationMilliseconds = 500;
 
+const prefersReducedMotion = window.matchMedia(
+  "(prefers-reduced-motion: reduce)",
+).matches;
+
 const board = document.querySelector<HTMLDivElement>("#board")!;
-const keyboard = document.querySelector<HTMLDivElement>("#keyboard")!;
+const keys = document.querySelectorAll<HTMLButtonElement>(".key");
 const toast = document.querySelector<HTMLDivElement>("#toast")!;
 const newGameButton = document.querySelector<HTMLButtonElement>("#new-game")!;
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+const newGameDialog =
+  document.querySelector<HTMLDialogElement>("#new-game-dialog")!;
+const newGameForm = document.querySelector<HTMLFormElement>("#new-game-form")!;
+const newGameCancelButton =
+  document.querySelector<HTMLButtonElement>("#new-game-cancel")!;
+const wordLengthInput =
+  document.querySelector<HTMLInputElement>("#word-length")!;
+const wordLengthOutput =
+  document.querySelector<HTMLOutputElement>("#word-length-value")!;
+const maxGuessesInput =
+  document.querySelector<HTMLInputElement>("#max-guesses")!;
+const maxGuessesOutput =
+  document.querySelector<HTMLOutputElement>("#max-guesses-value")!;
 
 let session: Session | null = null;
 let currentGuess = "";
+// true while a guess is being checked and revealed, so key presses are ignored
 let busy = false;
 let toastTimeout: number | undefined;
 
-function isComplete(game: Session): boolean {
+function isGameOver(game: Session): boolean {
   return game.hidden_word !== undefined;
-}
-
-function readStoredSessionID(): string | null {
-  try {
-    return localStorage.getItem(sessionStorageKey);
-  } catch {
-    return null;
-  }
-}
-
-function storeSessionID(sessionID: string) {
-  try {
-    localStorage.setItem(sessionStorageKey, sessionID);
-  } catch {
-    // the game still works without persistence, it just won't survive a refresh
-  }
-}
-
-function showToast(message: string, persistent = false) {
-  window.clearTimeout(toastTimeout);
-  toast.textContent = message;
-  toast.classList.add("visible");
-  if (!persistent) {
-    toastTimeout = window.setTimeout(
-      () => toast.classList.remove("visible"),
-      1500,
-    );
-  }
-}
-
-function hideToast() {
-  window.clearTimeout(toastTimeout);
-  toast.classList.remove("visible");
 }
 
 function wait(milliseconds: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds));
 }
 
-// create an empty board sized to the session's word length and guess count
-function buildBoard(game: Session) {
-  board.style.setProperty("--columns", String(game.word_length));
-  board.style.setProperty("--rows", String(game.max_guesses));
+// the toast is hidden by css whenever it is empty
+function showToast(message: string, { stayVisible = false } = {}) {
+  window.clearTimeout(toastTimeout);
+  toast.textContent = message;
+  if (!stayVisible) {
+    toastTimeout = window.setTimeout(hideToast, 1500);
+  }
+}
 
-  const rows = [];
-  for (let rowIndex = 0; rowIndex < game.max_guesses; rowIndex++) {
+function hideToast() {
+  window.clearTimeout(toastTimeout);
+  toast.textContent = "";
+}
+
+function showEndMessage(game: Session) {
+  const lastGuess = game.guesses[game.guesses.length - 1];
+  if (lastGuess.word === game.hidden_word) {
+    showToast(`Solved in ${game.guesses.length}/${game.max_guesses}`, {
+      stayVisible: true,
+    });
+  } else {
+    showToast(game.hidden_word!.toUpperCase(), { stayVisible: true });
+  }
+}
+
+// an empty grid with one row of tiles per allowed guess
+function buildBoard(wordLength: number, maxGuesses: number) {
+  board.style.setProperty("--columns", String(wordLength));
+  board.style.setProperty("--rows", String(maxGuesses));
+  board.replaceChildren();
+
+  for (let rowIndex = 0; rowIndex < maxGuesses; rowIndex++) {
     const row = document.createElement("div");
     row.className = "row";
-    row.addEventListener("animationend", () => row.classList.remove("shake"));
-    for (let columnIndex = 0; columnIndex < game.word_length; columnIndex++) {
+    for (let columnIndex = 0; columnIndex < wordLength; columnIndex++) {
       const tile = document.createElement("div");
       tile.className = "tile";
       tile.style.setProperty("--index", String(columnIndex));
       row.append(tile);
     }
-    rows.push(row);
+    board.append(row);
   }
-  board.replaceChildren(...rows);
 }
 
-function renderBoard(game: Session) {
-  Array.from(board.children).forEach((row, rowIndex) => {
-    const guess = game.guesses[rowIndex];
-    const isCurrentRow = rowIndex === game.guesses.length;
+// fill the tiles with the submitted guesses, followed by the guess being typed
+function renderBoard(guesses: Guess[]) {
+  board.querySelectorAll(".row").forEach((row, rowIndex) => {
+    const guess = guesses[rowIndex];
+    const isCurrentRow = rowIndex === guesses.length;
 
-    Array.from(row.children).forEach((tileNode, columnIndex) => {
-      const tile = tileNode as HTMLDivElement;
-      let letter = "";
-      let state = "empty";
+    row.querySelectorAll<HTMLElement>(".tile").forEach((tile, columnIndex) => {
       if (guess) {
-        letter = guess.word[columnIndex];
-        state = guess.result[columnIndex];
+        tile.textContent = guess.word[columnIndex];
+        tile.dataset.state = guess.result[columnIndex];
       } else if (isCurrentRow && columnIndex < currentGuess.length) {
-        letter = currentGuess[columnIndex];
-        state = "filled";
+        tile.textContent = currentGuess[columnIndex];
+        tile.dataset.state = "filled";
+      } else {
+        tile.textContent = "";
+        tile.dataset.state = "empty";
       }
-      tile.textContent = letter;
-      tile.dataset.state = state;
     });
   });
 }
 
-function renderKeyboard(game: Session) {
+// colour each key by the best result its letter has had so far
+function renderKeyboard(guesses: Guess[]) {
+  const resultRank = { absent: 1, present: 2, correct: 3 };
   const bestResults = new Map<string, LetterResult>();
-  for (const guess of game.guesses) {
+
+  for (const guess of guesses) {
     guess.result.forEach((result, index) => {
       const letter = guess.word[index];
-      const known = bestResults.get(letter);
-      if (!known || resultRank[result] > resultRank[known]) {
+      const bestSoFar = bestResults.get(letter);
+      if (!bestSoFar || resultRank[result] > resultRank[bestSoFar]) {
         bestResults.set(letter, result);
       }
     });
   }
 
-  for (const key of keyboard.querySelectorAll<HTMLButtonElement>(".key")) {
+  for (const key of keys) {
     const result = bestResults.get(key.dataset.key!);
     if (result) {
       key.dataset.state = result;
@@ -142,76 +146,58 @@ function renderKeyboard(game: Session) {
   }
 }
 
-function showEndMessage(game: Session) {
-  const lastGuess = game.guesses[game.guesses.length - 1];
-  if (lastGuess?.word === game.hidden_word) {
-    showToast(`Solved in ${game.guesses.length}/${game.max_guesses}`, true);
-  } else {
-    showToast(game.hidden_word!.toUpperCase(), true);
-  }
+function shake(row: HTMLElement) {
+  row.classList.remove("shake");
+  // force a reflow so the animation restarts if the row is already shaking
+  void row.offsetWidth;
+  row.classList.add("shake");
 }
 
-function loadSession(game: Session) {
-  session = game;
+function loadSession(newSession: Session) {
+  session = newSession;
   currentGuess = "";
-  storeSessionID(game.session_id);
-  hideToast();
-  buildBoard(game);
-  renderBoard(game);
-  renderKeyboard(game);
-  if (isComplete(game)) {
-    showEndMessage(game);
-  }
-}
-
-async function createSession(): Promise<Session> {
-  const response = await fetch("/api/session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: "{}",
-  });
-  if (!response.ok) {
-    throw new Error(`create session failed with ${response.status}`);
-  }
-  return response.json();
-}
-
-async function fetchSession(sessionID: string): Promise<Session | null> {
-  const response = await fetch(`/api/session/${encodeURIComponent(sessionID)}`);
-  return response.ok ? response.json() : null;
-}
-
-async function startNewGame() {
-  if (busy) {
-    return;
-  }
-  busy = true;
   try {
-    loadSession(await createSession());
+    localStorage.setItem(sessionStorageKey, newSession.session_id);
+  } catch {
+    // storage is blocked, so the game works but won't survive a reload
+  }
+
+  hideToast();
+  buildBoard(newSession.word_length, newSession.max_guesses);
+  renderBoard(newSession.guesses);
+  renderKeyboard(newSession.guesses);
+  if (isGameOver(newSession)) {
+    showEndMessage(newSession);
+  }
+}
+
+async function startNewGame(wordLength: number, maxGuesses: number) {
+  try {
+    const response = await fetch("/api/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        word_length: wordLength,
+        max_guesses: maxGuesses,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(`create session failed with ${response.status}`);
+    }
+    loadSession(await response.json());
   } catch {
     showToast("Could not start a game");
-  } finally {
-    busy = false;
   }
-}
-
-function shakeCurrentRow() {
-  if (!session) {
-    return;
-  }
-  const row = board.children[session.guesses.length];
-  row.classList.remove("shake");
-  // force a reflow so the animation restarts when shaking twice in a row
-  void (row as HTMLElement).offsetWidth;
-  row.classList.add("shake");
 }
 
 async function submitGuess() {
   if (!session) {
     return;
   }
+  const row = board.children[session.guesses.length] as HTMLElement;
+
   if (currentGuess.length < session.word_length) {
-    shakeCurrentRow();
+    shake(row);
     showToast("Not enough letters");
     return;
   }
@@ -225,36 +211,17 @@ async function submitGuess() {
     });
     const body = await response.json();
 
-    if (!response.ok) {
-      if (body.reason === "invalid_word") {
-        shakeCurrentRow();
-        showToast("Not in word list");
-      } else if (body.reason === "session_not_found") {
-        showToast("Game expired, starting a new one");
-        loadSession(await createSession());
-      } else {
-        showToast("Something went wrong");
-      }
-      return;
-    }
-
-    const updatedSession: Session = body;
-    const revealedRow = board.children[session.guesses.length];
-    session = updatedSession;
-    currentGuess = "";
-    revealedRow.classList.add("reveal");
-    renderBoard(updatedSession);
-
-    // keep the keyboard and result hidden until the tiles have flipped, like wordle
-    if (!reducedMotion.matches) {
-      await wait(
-        (updatedSession.word_length - 1) * flipStaggerMilliseconds +
-          flipDurationMilliseconds,
-      );
-    }
-    renderKeyboard(updatedSession);
-    if (isComplete(updatedSession)) {
-      showEndMessage(updatedSession);
+    if (response.ok) {
+      await revealGuess(row, body);
+    } else if (body.reason === "invalid_word") {
+      shake(row);
+      showToast("Not in word list");
+    } else if (body.reason === "session_not_found") {
+      showToast("Game expired");
+      session = null;
+      newGameDialog.showModal();
+    } else {
+      showToast("Something went wrong");
     }
   } catch {
     showToast("Something went wrong");
@@ -263,8 +230,27 @@ async function submitGuess() {
   }
 }
 
+async function revealGuess(row: HTMLElement, updatedSession: Session) {
+  session = updatedSession;
+  currentGuess = "";
+  row.classList.add("reveal");
+  renderBoard(updatedSession.guesses);
+
+  // like wordle, keep the keyboard and result hidden until every tile has flipped
+  if (!prefersReducedMotion) {
+    const lastTileDelay =
+      (updatedSession.word_length - 1) * flipDelayMilliseconds;
+    await wait(lastTileDelay + flipDurationMilliseconds);
+  }
+
+  renderKeyboard(updatedSession.guesses);
+  if (isGameOver(updatedSession)) {
+    showEndMessage(updatedSession);
+  }
+}
+
 function handleKey(key: string) {
-  if (!session || busy || isComplete(session)) {
+  if (!session || busy || isGameOver(session)) {
     return;
   }
 
@@ -272,47 +258,68 @@ function handleKey(key: string) {
     submitGuess();
   } else if (key === "backspace") {
     currentGuess = currentGuess.slice(0, -1);
-    renderBoard(session);
+    renderBoard(session.guesses);
   } else if (/^[a-z]$/.test(key) && currentGuess.length < session.word_length) {
     currentGuess += key;
-    renderBoard(session);
+    renderBoard(session.guesses);
   }
 }
 
 document.addEventListener("keydown", (event) => {
-  if (event.ctrlKey || event.metaKey || event.altKey) {
+  if (newGameDialog.open || event.ctrlKey || event.metaKey || event.altKey) {
     return;
   }
-  const key = event.key.toLowerCase();
-  if (key === "enter" || key === "backspace" || /^[a-z]$/.test(key)) {
-    // stops enter from also clicking whichever button has focus
+  // otherwise enter would also click whichever button has focus
+  if (event.key === "Enter") {
     event.preventDefault();
-    handleKey(key);
   }
+  handleKey(event.key.toLowerCase());
 });
 
-keyboard.addEventListener("click", (event) => {
-  const key = (event.target as HTMLElement).closest<HTMLButtonElement>(".key");
-  if (key) {
-    handleKey(key.dataset.key!);
-  }
-});
-
-newGameButton.addEventListener("click", () => {
-  newGameButton.blur();
-  startNewGame();
-});
-
-async function initialise() {
-  const storedSessionID = readStoredSessionID();
-  const storedSession = storedSessionID
-    ? await fetchSession(storedSessionID).catch(() => null)
-    : null;
-  if (storedSession) {
-    loadSession(storedSession);
-  } else {
-    await startNewGame();
-  }
+for (const key of keys) {
+  key.addEventListener("click", () => handleKey(key.dataset.key!));
 }
 
-initialise();
+// wait for any guess to finish revealing, so its result can't land on the new game
+newGameButton.addEventListener("click", () => {
+  if (!busy) {
+    newGameDialog.showModal();
+  }
+});
+
+newGameCancelButton.addEventListener("click", () => newGameDialog.close());
+
+// closing the dialog hands focus back to the new game button, where space would reopen it
+newGameDialog.addEventListener("close", () => newGameButton.blur());
+
+wordLengthInput.addEventListener("input", () => {
+  wordLengthOutput.value = wordLengthInput.value;
+});
+
+maxGuessesInput.addEventListener("input", () => {
+  maxGuessesOutput.value = maxGuessesInput.value;
+});
+
+// method="dialog" closes the dialog when the form is submitted
+newGameForm.addEventListener("submit", () => {
+  startNewGame(wordLengthInput.valueAsNumber, maxGuessesInput.valueAsNumber);
+});
+
+// carry on with the game saved in this browser, or ask for a new one
+async function resumeOrAskForNewGame() {
+  try {
+    const savedSessionID = localStorage.getItem(sessionStorageKey);
+    if (savedSessionID) {
+      const response = await fetch(`/api/session/${savedSessionID}`);
+      if (response.ok) {
+        loadSession(await response.json());
+        return;
+      }
+    }
+  } catch {
+    // storage is blocked or the server is unreachable, so start afresh
+  }
+  newGameDialog.showModal();
+}
+
+resumeOrAskForNewGame();

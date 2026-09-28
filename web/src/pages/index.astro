@@ -24,42 +24,68 @@ const keyboardRows = [
     </header>
 
     <main>
-      <div id="toast" role="status" aria-live="polite"></div>
       <div id="board"></div>
     </main>
 
+    <div id="toast" role="status"></div>
+
     <div id="keyboard">
-      {keyboardRows.map((row, rowIndex) => (
+      {keyboardRows.map((row) => (
         <div class="keyboard-row">
-          {rowIndex === 1 && <div class="spacer" />}
           {row.map((key) => (
             <button
               type="button"
               class:list={["key", { wide: key.length > 1 }]}
               data-key={key}
-              aria-label={key.length > 1 ? key : undefined}
+              aria-label={key}
             >
-              {key === "backspace" ? (
-                <svg
-                  viewBox="0 0 24 24"
-                  width="24"
-                  height="24"
-                  aria-hidden="true"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H7.07L2.4 12l4.66-7H22v14zm-11.59-2L14 13.41 17.59 17 19 15.59 15.41 12 19 8.41 17.59 7 14 10.59 10.41 7 9 8.41 12.59 12 9 15.59z"
-                  />
-                </svg>
-              ) : (
-                key
-              )}
+              {key === "backspace" ? "⌫" : key}
             </button>
           ))}
-          {rowIndex === 1 && <div class="spacer" />}
         </div>
       ))}
     </div>
+
+    <footer>
+      <a
+        href="https://github.com/Joshwantt/gordle"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Source code on GitHub"
+      >
+        <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true">
+          <path
+            fill="currentColor"
+            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"
+          ></path>
+        </svg>
+      </a>
+    </footer>
+
+    <dialog id="new-game-dialog" aria-labelledby="new-game-title">
+      <form id="new-game-form" method="dialog">
+        <h2 id="new-game-title">New game</h2>
+
+        <label for="word-length">
+          Word length: <output id="word-length-value">5</output>
+          <input id="word-length" type="range" min="3" max="16" value="5" />
+        </label>
+
+        <label for="max-guesses">
+          Guesses: <output id="max-guesses-value">6</output>
+          <input id="max-guesses" type="range" min="1" max="20" value="6" />
+        </label>
+
+        <div class="dialog-buttons">
+          <button id="new-game-cancel" type="button">
+            Cancel
+          </button>
+          <button type="submit" autofocus>
+            Start
+          </button>
+        </div>
+      </form>
+    </dialog>
 
     <script>
       import "../scripts/game.ts";
@@ -68,165 +94,89 @@ const keyboardRows = [
 </html>
 
 <style is:global>
+  /* light-dark() picks a colour based on the browser's light or dark mode */
   :root {
-    --color-background: #ffffff;
-    --color-text: #1a1a1b;
-    --color-tile-border: #d3d6da;
-    --color-tile-border-filled: #878a8c;
-    --color-key: #d3d6da;
-    --color-key-text: #1a1a1b;
+    color-scheme: light dark;
+    accent-color: #6aaa64;
     --color-correct: #6aaa64;
     --color-present: #c9b458;
-    --color-absent: #787c7e;
-    --color-revealed-text: #ffffff;
-    --color-toast: #1a1a1b;
-    --color-toast-text: #ffffff;
-    --color-divider: #d3d6da;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --color-background: #121213;
-      --color-text: #ffffff;
-      --color-tile-border: #3a3a3c;
-      --color-tile-border-filled: #565758;
-      --color-key: #818384;
-      --color-key-text: #ffffff;
-      --color-correct: #538d4e;
-      --color-present: #b59f3b;
-      --color-absent: #3a3a3c;
-      --color-toast: #ffffff;
-      --color-toast-text: #1a1a1b;
-      --color-divider: #3a3a3c;
-    }
+    --color-absent: light-dark(#787c7e, #3a3a3c);
+    --color-border: light-dark(#d3d6da, #3a3a3c);
+    --color-border-filled: light-dark(#878a8c, #565758);
+    --color-key: light-dark(#d3d6da, #818384);
   }
 
   * {
     box-sizing: border-box;
   }
 
-  html,
-  body {
-    margin: 0;
-    height: 100%;
-  }
-
   body {
     display: flex;
     flex-direction: column;
     height: 100dvh;
-    background: var(--color-background);
-    color: var(--color-text);
+    margin: 0;
     font-family: "Helvetica Neue", Arial, sans-serif;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  button {
-    font: inherit;
-    color: inherit;
-    cursor: pointer;
   }
 
   header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 52px;
     padding: 0 16px;
-    border-bottom: 1px solid var(--color-divider);
+    border-bottom: 1px solid var(--color-border);
   }
 
-  h1 {
-    margin: 0;
-    font-size: 1.75rem;
-    font-weight: 700;
-    letter-spacing: 0.02em;
-  }
-
-  #new-game {
-    padding: 6px 12px;
-    border: 1px solid var(--color-tile-border-filled);
-    border-radius: 4px;
-    background: transparent;
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
-
+  /* the board takes whatever space is left between the header and keyboard */
   main {
-    position: relative;
     flex: 1;
+    min-height: 0;
     display: grid;
     place-items: center;
     padding: 12px;
     container-type: size;
-    min-height: 0;
   }
 
-  /* tiles scale to fit both the width and height of main, whatever the grid dimensions */
+  /* tiles shrink until the whole board fits inside main (cqw and cqh are main's width and height) */
   #board {
-    --gap: 5px;
-    --tile: min(
+    --tile-size: min(
       62px,
-      (100cqw - (var(--columns) - 1) * var(--gap)) / var(--columns),
-      (100cqh - (var(--rows) - 1) * var(--gap)) / var(--rows)
+      100cqw / var(--columns) - 5px,
+      100cqh / var(--rows) - 5px
     );
     display: grid;
-    gap: var(--gap);
+    gap: 5px;
   }
 
   .row {
     display: grid;
-    grid-template-columns: repeat(var(--columns), var(--tile));
-    gap: var(--gap);
+    grid-template-columns: repeat(var(--columns), var(--tile-size));
+    gap: 5px;
   }
 
   .tile {
-    --tile-color: transparent;
-    --tile-border: var(--color-tile-border);
-    --tile-text: var(--color-text);
+    aspect-ratio: 1;
     display: grid;
     place-items: center;
-    width: var(--tile);
-    height: var(--tile);
-    border: 2px solid var(--tile-border);
-    background: var(--tile-color);
-    color: var(--tile-text);
-    font-size: calc(var(--tile) * 0.55);
-    font-weight: 700;
-    line-height: 1;
+    border: 2px solid var(--color-border);
+    font-size: calc(var(--tile-size) * 0.55);
+    font-weight: bold;
     text-transform: uppercase;
-    user-select: none;
   }
 
   .tile[data-state="filled"] {
-    --tile-border: var(--color-tile-border-filled);
-    animation: pop 100ms ease-out;
+    border-color: var(--color-border-filled);
+    animation: pop 100ms;
   }
 
-  .tile[data-state="correct"],
-  .tile[data-state="present"],
-  .tile[data-state="absent"] {
-    --tile-border: var(--tile-color);
-    --tile-text: var(--color-revealed-text);
-  }
-  .tile[data-state="correct"] {
-    --tile-color: var(--color-correct);
-  }
-  .tile[data-state="present"] {
-    --tile-color: var(--color-present);
-  }
-  .tile[data-state="absent"] {
-    --tile-color: var(--color-absent);
-  }
-
-  /* each tile flips in turn, switching to its result colour while edge-on */
+  /* each tile flips in turn and only switches to its result colour when edge-on, halfway through */
   .row.reveal .tile {
-    animation: flip 500ms ease-in-out backwards;
-    animation-delay: calc(var(--index) * 250ms);
+    animation: flip 500ms calc(var(--index) * 250ms);
+    transition-property: background-color, border-color, color;
+    transition-delay: calc(var(--index) * 250ms + 250ms);
   }
 
   .row.shake {
-    animation: shake 400ms ease-in-out;
+    animation: shake 300ms;
   }
 
   @keyframes pop {
@@ -236,74 +186,44 @@ const keyboardRows = [
   }
 
   @keyframes flip {
-    0% {
-      transform: rotateX(0);
-      background: transparent;
-      border-color: var(--color-tile-border-filled);
-      color: var(--color-text);
-    }
     50% {
       transform: rotateX(90deg);
-      background: transparent;
-      border-color: var(--color-tile-border-filled);
-      color: var(--color-text);
-    }
-    50.01% {
-      background: var(--tile-color);
-      border-color: var(--tile-color);
-      color: var(--tile-text);
-    }
-    100% {
-      transform: rotateX(0);
     }
   }
 
   @keyframes shake {
-    10%,
-    90% {
-      transform: translateX(-1px);
-    }
-    20%,
-    80% {
-      transform: translateX(2px);
-    }
-    30%,
-    50%,
-    70% {
+    25%,
+    75% {
       transform: translateX(-4px);
     }
-    40%,
-    60% {
+    50% {
       transform: translateX(4px);
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .tile,
-    .row {
+    * {
       animation: none !important;
+      transition: none !important;
     }
   }
 
   #toast {
-    position: absolute;
-    top: 8px;
+    position: fixed;
+    top: 80px;
     left: 50%;
-    z-index: 1;
-    transform: translateX(-50%);
+    translate: -50%;
     padding: 12px 16px;
     border-radius: 4px;
-    background: var(--color-toast);
-    color: var(--color-toast-text);
-    font-weight: 700;
+    background: CanvasText;
+    color: Canvas;
+    font-weight: bold;
     white-space: nowrap;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 150ms;
   }
 
-  #toast.visible {
-    opacity: 1;
+  /* hidden rather than display: none, so screen readers still announce new messages */
+  #toast:empty {
+    opacity: 0;
   }
 
   #keyboard {
@@ -320,41 +240,86 @@ const keyboardRows = [
     gap: 6px;
   }
 
-  .spacer {
-    flex: 0.5;
+  /* the middle row has one less key, so indent it by half a key on each side */
+  .keyboard-row:nth-child(2) {
+    padding: 0 5%;
   }
 
   .key {
     flex: 1;
-    display: grid;
-    place-items: center;
     height: min(58px, 8dvh);
     padding: 0;
     border: 0;
     border-radius: 4px;
     background: var(--color-key);
-    color: var(--color-key-text);
     font-size: 1.25rem;
-    font-weight: 700;
+    font-weight: bold;
     text-transform: uppercase;
-    user-select: none;
   }
 
   .key.wide {
     flex: 1.5;
+  }
+
+  .key[data-key="enter"] {
     font-size: 0.75rem;
   }
 
-  .key[data-state] {
-    color: var(--color-revealed-text);
-  }
-  .key[data-state="correct"] {
+  /* results colour both the board tiles and the keyboard keys, so these come after both */
+  [data-state="correct"] {
     background: var(--color-correct);
   }
-  .key[data-state="present"] {
+  [data-state="present"] {
     background: var(--color-present);
   }
-  .key[data-state="absent"] {
+  [data-state="absent"] {
     background: var(--color-absent);
+  }
+  [data-state="correct"],
+  [data-state="present"],
+  [data-state="absent"] {
+    border-color: transparent;
+    color: white;
+  }
+
+  footer {
+    display: flex;
+    justify-content: center;
+    padding-bottom: 8px;
+  }
+
+  footer a {
+    display: flex;
+    color: inherit;
+    opacity: 0.4;
+  }
+
+  footer a:hover,
+  footer a:focus-visible {
+    opacity: 1;
+  }
+
+  #new-game-dialog {
+    width: 320px;
+  }
+
+  #new-game-form {
+    display: grid;
+    gap: 16px;
+  }
+
+  #new-game-form h2 {
+    margin: 0;
+  }
+
+  #new-game-form input {
+    display: block;
+    width: 100%;
+  }
+
+  .dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
   }
 </style>
